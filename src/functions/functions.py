@@ -84,7 +84,7 @@ def getVehiclePrices(regNumber):
 
 
 def getVehicleAuctionPrice(url):
-    DRIVER = webdriver.Chrome('/home/sesu/Documents/Home/dev/python/chromedriver')
+    DRIVER = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
     # Creating the request
     response = DRIVER.get(url)
 
@@ -101,11 +101,13 @@ def getVehicleAuctionPrice(url):
 
     vehicleTotalKilometresDriven = DRIVER.find_element_by_css_selector(('.key-number')).text
 
-    print("\nAUCTION CAR:\n")
+    vehicleTitle = DRIVER.find_element_by_css_selector(('.crumb-title')).text
 
-    print(f'Total kilometres: {vehicleTotalKilometresDriven} KM\n')
-    print(f'Highest bid on Auksjonen.no: {vehicleAuctionHighestBid} NOK\n')
-    print(f'Car location: {vehicleAuctionLocation}\n')
+    print(f'''
+    {vehicleTitle}
+    Total kilometres: {vehicleTotalKilometresDriven} KM
+    Highest bid on Auksjonen.no: {vehicleAuctionHighestBid} NOK
+    Car location: {vehicleAuctionLocation}\n\n''')
     DRIVER.close()
 
 def userMenu():
@@ -115,7 +117,8 @@ def userMenu():
         1. Get vehicle registration number from Statens Vegvesen using VIN-number (INSERT VIN-number)
         2. Get vehicle prices from regnr.no (INSERT Registration Number)
         3. Get auction prices from auksjonen.no (INSERT URL)
-        4. Exit Program
+        4. Get auction cars from auksjonen.no
+        5. Exit Program
         """)
 
         userChoice = input("        I want to: ")
@@ -132,10 +135,40 @@ def userMenu():
             url = regNumberInput = input("      Please write the auction URL: ")
             getVehicleAuctionPrice(url)
 
-        elif(userChoice == "4"):
+        elif (userChoice == "4"):
+            auctionCarLinks = []
+            brand = input("      Please write the car brand: ")
+            getAllAuctionCarsGivenBrand(auctionCarLinks,brand)
+            for auctionCarLink in auctionCarLinks:
+                getVehicleAuctionPrice(auctionCarLink)
+
+        elif(userChoice == "5"):
             userChoice = False
         
         else:
             print("\n Not Valid Choice Try again")
         
-        
+
+
+def getAllAuctionCarsGivenBrand(auctionCarLinks, brand):
+
+    DRIVER = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
+
+    # Creating the request
+    response = DRIVER.get(f"https://auksjonen.no/auksjoner/bruktbil?filter=~(valueFilters~(~(field~%27details.brand~values~(~%27{brand}))))")
+    
+    if response:
+        print('(Get RegNumber) Request is successful.')
+    else:
+        print('(Get RegNumber) Request returned an error.')
+
+    auctionListings = DRIVER.find_elements_by_css_selector('.clearfix')
+
+    for auctionCar in auctionListings:
+        auctionCarLink = auctionCar.get_attribute('href')
+        if(auctionCarLink != None):
+            auctionCarLinks.append(auctionCarLink)
+        else:
+            continue
+
+    #print(auctionCarLinks)
