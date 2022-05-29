@@ -8,7 +8,6 @@ import time
 import re
 
 def userMenu():
-    resultString = "Resultstring: \n"
     auctionCarLinks = []
     userChoice = True
     while(userChoice):
@@ -28,25 +27,21 @@ def userMenu():
             getRegNumberOfVehicle(vinNumberInput)
 
         elif(userChoice == "2"):
-            regNumberInput = input("        Please write the registration number:")
-            getVehiclePrivateAndDealerPrice(regNumberInput,resultString)
-            print(resultString)
+            regNumberInput = input("        Please write the registration number: ")
+            getVehiclePrivateAndDealerPrice(regNumberInput)
     
         elif(userChoice == "3"):
             url = regNumberInput = input("      Please write the auction URL: ")
-            getVehicleAuctionPrice(url, resultString)
-            print(resultString)
+            getVehicleAuctionPrice(url)
 
         elif (userChoice == "4"):
             brand = input("      Please write the car brand: ")
             getAllAuctionCarsGivenBrand(auctionCarLinks,brand)
             for auctionCarLink in auctionCarLinks:
-                getVehicleAuctionPrice(auctionCarLink, resultString)
-                print(resultString)
+                getVehicleAuctionPrice(auctionCarLink)
         
         elif (userChoice == "5"):
-            compareAuctionPriceWithDealerPrice(auctionCarLinks, resultString)
-            print(resultString)
+            compareAuctionPriceWithDealerPrice(auctionCarLinks)
         
         elif(userChoice == "6"):
             userChoice = False
@@ -82,7 +77,7 @@ def getRegNumberOfVehicle(vinNumber):
 
     return regNumber
 
-def getVehiclePrivateAndDealerPrice(regNumber, resultString):
+def getVehiclePrivateAndDealerPrice(regNumber):
     DRIVER = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
 
     # Creating the request
@@ -111,18 +106,13 @@ def getVehiclePrivateAndDealerPrice(regNumber, resultString):
         privatePrice = allVehiclePrices[4].text
         liens = allVehiclePrices[5].text
          # Print out the different prices
-        resultString += f""""
-        RegNumber: {regNumber}\n
-        Dealerprice: {dealerPrice}\n'
-        Privateprice: {privatePrice}\n'
-        Liens: {liens}"""
+        print(" RegNumber:" + regNumber + "\n Dealerprice:" + dealerPrice + "\n Privateprice: " + privatePrice + "\n Liens:" + liens)
     else:
-
         print(f"Could not get price, please check this URL: https://www.regnr.no/{regNumber}")
     DRIVER.close()
     return [dealerPrice, privatePrice]
 
-def getVehicleAuctionPrice(url, resultString):
+def getVehicleAuctionPrice(url):
     DRIVER = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
     # Creating the request
     response = DRIVER.get(url)
@@ -142,11 +132,11 @@ def getVehicleAuctionPrice(url, resultString):
 
     vehicleTitle = DRIVER.find_element_by_css_selector(('.crumb-title')).text
 
-    resultString += f"""
+    print(f"""
     {vehicleTitle}
     Total kilometres: {vehicleTotalKilometresDriven} KM
     Highest bid on Auksjonen.no: {vehicleAuctionHighestBid} NOK
-    Car location: {vehicleAuctionLocation}\n"""
+    Car location: {vehicleAuctionLocation}\n""")
     DRIVER.close()
 
     return vehicleAuctionHighestBid
@@ -189,18 +179,18 @@ def getRegNumberOfAuctionCar(url):
             regNumber = info.text
     return regNumber
 
-def compareAuctionPriceWithDealerPrice(auctionCarLinks, resultString):
-    #brand = input('Insert brand you would like to compare the prices to: ')
-    getAllAuctionCarsGivenBrand(auctionCarLinks, "Honda")
+def compareAuctionPriceWithDealerPrice(auctionCarLinks):
+    brand = input('Insert brand you would like to compare the prices to: ')
+    getAllAuctionCarsGivenBrand(auctionCarLinks, brand)
     for auctionCarLink in auctionCarLinks:
-        carHighestBidOnAuction = int(getVehicleAuctionPrice(auctionCarLink, resultString).replace(",-","").replace(" ", ""))
+        carHighestBidOnAuction = int(getVehicleAuctionPrice(auctionCarLink).replace(",-","").replace(" ", ""))
         regNumberOfAuctionCar = getRegNumberOfAuctionCar(auctionCarLink)
-        carPrivateDealerPrice = getVehiclePrivateAndDealerPrice(regNumberOfAuctionCar, resultString)
+        carPrivateDealerPrice = getVehiclePrivateAndDealerPrice(regNumberOfAuctionCar)
         carPrivateDealerPrice = str(carPrivateDealerPrice[0]).replace(",-","").replace("kr", "").replace(" ", "")
-        resultString += f'Highest bid on auction: {carHighestBidOnAuction} kr\nDealer Price: {carPrivateDealerPrice} kr'
+        print(f' Highest bid on auction: {carHighestBidOnAuction} kr\n Dealer Price: {carPrivateDealerPrice} kr')
 
         if int(carHighestBidOnAuction) - int(carPrivateDealerPrice) < 0:
-            resultString += f"Auction car is cheaper by: {int(carPrivateDealerPrice) - int(carHighestBidOnAuction)} kr."
+            print(f" Auction car is cheaper by: {int(carPrivateDealerPrice) - int(carHighestBidOnAuction)} kr.")
 
 
 userMenu()
