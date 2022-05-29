@@ -24,8 +24,9 @@ def userMenu():
         userChoice = input("        I want to: ")
 
         if(userChoice == "1"):
-            vinNumberInput = input("        Please write the VIN Number: ")
-            getRegNumberOfVehicle(vinNumberInput)
+            #vinNumberInput = input("        Please write the VIN Number: ")
+            #getRegNumberOfVehicle(vinNumberInput)
+            getCarBrandAndModelCode()
 
         elif(userChoice == "2"):
             regNumberInput = input("        Please write the registration number: ")
@@ -198,7 +199,7 @@ def compareAuctionPriceWithDealerPrice(auctionCarLinks):
             print(f" Auction car is cheaper by: {int(carPrivateDealerPrice) - int(carHighestBidOnAuction)} kr.")
 
 def getCarDetailsFromFinn(url):
-    
+
     DRIVER = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
     # Creating the request
     response = DRIVER.get(url)
@@ -232,6 +233,61 @@ def getCarDetailsFromFinn(url):
     carDetailsOverview["transmission"] = carTransmission
     carDetailsOverview["fueltype"] = carFuelType
     return carDetailsOverview
+
+def createFinnLinkWithCarsSimilarToGivenCar(carDetailsDictionary):
+    findCarsBrandAndModelCode = carDetailsDictionary["model"]
+    findCarsWithHorsePowerFrom = carDetailsDictionary["horsepower"]
+    findCarsWithHorsePowerTo = carDetailsDictionary["ModelCode"]
+    findCarsWithFuelType = carDetailsDictionary["ModelCode"]
+    findCarsWithMileageFrom = carDetailsDictionary["ModelCode"]
+    findCarsWithMileageTo = carDetailsDictionary["ModelCode"]
+    findCarsWithTransmission = carDetailsDictionary["ModelCode"]
+    findCarsWithWheelDrive = carDetailsDictionary["ModelCode"]
+    findCarsWithYearFrom = carDetailsDictionary["ModelCode"]
+    findCarsWithYearTo = carDetailsDictionary["ModelCode"]
+    urlToCarWithSimilarSpecs = f'https://www.finn.no/car/used/search.html?engine_effect_from={findCarsWithHorsePowerFrom}&engine_effect_to={findCarsWithHorsePowerTo}&engine_fuel={findCarsWithFuelType}&mileage_from={findCarsWithMileageFrom}&mileage_to={findCarsWithMileageTo}&model={findCarsBrandAndModelCode}&page=1&sales_form=1&sort=PRICE_ASC&transmission={findCarsWithTransmission}&wheel_drive={findCarsWithWheelDrive}&year_from={findCarsWithYearFrom}&year_to={findCarsWithYearTo}'
+
+    return urlToCarWithSimilarSpecs
+
+def getCarBrandAndModelCode(url):
+
+    carBrandAndModelCode = {}
+
+    DRIVER = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
+    # Creating the request
+    response = DRIVER.get(url)
+    if response:
+        print('(Get RegNumber) Request is successful.')
+    else:
+        print('(Get RegNumber) Request returned an error.')
+
+    carBrandAndModelCode = DRIVER.find_elements_by_css_selector('.truncate') # Details with bold font on FINN advertisement
+    carBrandCodeFromLink = "" # Get car brand  i.e Audi
+    carModelCodeFromLink = "" # Get car model i.e A6
+
+    for brandcode in carBrandAndModelCode: 
+        actualCode = brandcode.get_attribute('href')  
+        if(actualCode != None):
+            make = re.search("\d\.\d\d\d", actualCode) # Uses RegEx to find a pattern which matches the brandcode (Finn.no) i.e 0.744 = Audi
+            if(make):
+                carBrandCodeFromLink = make.group(0)
+
+    for modelcode in carBrandAndModelCode:
+        actualCode = modelcode.get_attribute('href')
+        if(actualCode != None):
+            make = re.search("\d\.\d\d\d\.\d\d\d", actualCode) # Uses RegEx to find a pattern which matches the modelcode (Finn.no) i.e 1.744.840 = Audi -> A6
+            if(make):
+                carModelCodeFromLink = make.group(0)
+        else:
+            continue
+    print(f"Car brand code : {carBrandCodeFromLink}")
+    print(f"Car model code: {carModelCodeFromLink}")
+
+    carBrandAndModelCode["brandCode"] = carBrandCodeFromLink
+    carBrandAndModelCode["modelCode"] = carModelCodeFromLink
+
+    return carBrandAndModelCode
+
 def getAllCarsWithSameSpecsFromFinn():
     return
 
