@@ -15,9 +15,10 @@ def userMenu():
         1. Get vehicle registration number from Statens Vegvesen using VIN-number (INSERT VIN-number)
         2. Get vehicle prices from regnr.no (INSERT Registration Number)
         3. Get auction prices from auksjonen.no (INSERT URL)
-        4. Get auction cars from auksjonen.no
-        5. Compare auction car with dealer price
-        6. Exit Program
+        4. Get auction cars from auksjonen.no (INSERT URL)
+        5. Compare auction car with dealer price (INSERT URL)
+        6. Get car details from FINN.no (INSERT URL)
+        7. Exit Program
         """)
 
         userChoice = input("        I want to: ")
@@ -42,8 +43,12 @@ def userMenu():
         
         elif (userChoice == "5"):
             compareAuctionPriceWithDealerPrice(auctionCarLinks)
-        
-        elif(userChoice == "6"):
+
+        elif (userChoice == "6"):
+            url = "https://www.finn.no/car/used/ad.html?finnkode=257881559"
+            getCarDetailsFromFinn(url)   
+
+        elif(userChoice == "7"):
             userChoice = False
         
         else:
@@ -192,5 +197,42 @@ def compareAuctionPriceWithDealerPrice(auctionCarLinks):
         if int(carHighestBidOnAuction) - int(carPrivateDealerPrice) < 0:
             print(f" Auction car is cheaper by: {int(carPrivateDealerPrice) - int(carHighestBidOnAuction)} kr.")
 
+def getCarDetailsFromFinn(url):
+    
+    DRIVER = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
+    # Creating the request
+    response = DRIVER.get(url)
+    if response:
+        print('(Get RegNumber) Request is successful.')
+    else:
+        print('(Get RegNumber) Request returned an error.')
+
+    finnCarsDetailsStrong = DRIVER.find_elements_by_css_selector('.u-strong') # Details with bold font on FINN advertisement
+    carModelYear = finnCarsDetailsStrong[0].text
+    carKilometres = finnCarsDetailsStrong[1].text.replace("km","").replace(" ", "")
+    carTransmission = finnCarsDetailsStrong[2].text
+    carFuelType = finnCarsDetailsStrong[3].text
+    carBrand = DRIVER.find_elements_by_css_selector('.u-t2') # Array with the brand
+    carTitle = DRIVER.find_elements_by_css_selector('.panel>p') # Array with the title
+    carBrandString = ','.join(str(x.text) for x in carBrand) # Convert array to string. 
+    carTitleString = carTitle[0].text # Convert array to string. 
+    print(f''' 
+    Brand: {carBrandString}
+    Title: {carTitleString}
+    Model Year: {carModelYear}
+    Total Kilometres: {carKilometres} KM
+    Transmission: {carTransmission}
+    Fuel Type: {carFuelType}
+    ''')
+    carDetailsOverview = {}
+    carDetailsOverview["brand"] = carBrandString
+    carDetailsOverview["title"] = carTitleString
+    carDetailsOverview["modelyear"] = carModelYear
+    carDetailsOverview["kilometres"] = carKilometres
+    carDetailsOverview["transmission"] = carTransmission
+    carDetailsOverview["fueltype"] = carFuelType
+    return carDetailsOverview
+def getAllCarsWithSameSpecsFromFinn():
+    return
 
 userMenu()
