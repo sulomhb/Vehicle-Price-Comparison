@@ -9,3 +9,8 @@ All information was gained through web scraping.
 Technologies used: Selenium (Python)
 
 Resources used: Auksjonen.no, Statens vegvensen, regnr.no
+
+
+# Installing the application
+
+
