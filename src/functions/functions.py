@@ -162,31 +162,35 @@ def getCarDetailsFromFinn(url):
 
     finnCarsDetailsStrong = DRIVER.find_elements_by_css_selector('.u-strong') # Details with bold font on FINN advertisement
     carModelYear = finnCarsDetailsStrong[0].text
-    carKilometres = finnCarsDetailsStrong[1].text.replace("km","").replace(" ", "")
+    carMileage = finnCarsDetailsStrong[1].text.replace("km","").replace(" ", "")
     carTransmission = finnCarsDetailsStrong[2].text
     carFuelType = finnCarsDetailsStrong[3].text
     
-    finnCarsDetailsInColumns = DRIVER.find_elements_by_css_selector('.list-descriptive') # Listed details under "specifications" subfield.
-
-    carHorsePower = finnCarsDetailsInColumns
+    # Get details from the two columns in the Finn announcement
+    finnCarsDetailsInColumns = DRIVER.find_elements_by_css_selector('.list-descriptive>div>dd') # Listed details under "specifications" subfield.
+    carWheelDrive = finnCarsDetailsInColumns[7].text
+    carHorsePower = finnCarsDetailsInColumns[8].text
+    
     # Convert from Array to String required:
     carBrand = DRIVER.find_elements_by_css_selector('.u-t2') # Array with the brand
     carTitle = DRIVER.find_elements_by_css_selector('.panel>p') # Array with the title
-    carBrandString = ','.join(str(x.text) for x in carBrand) # Convert array to string. 
-    carTitleString = carTitle[0].text # Convert array to string. 
-    print(f'''Brand: {carBrandString}\nTitle: {carTitleString}\nModel Year: {carModelYear}\nTotal Kilometres: {carKilometres} KM\nTransmission: {carTransmission}\nFuel Type: {carFuelType}''')
+    carBrandString = ','.join(str(x.text) for x in carBrand) # Convert array to string.
+    carTitleString = carTitle[0].text # Convert array to string.
+
+    print(f'''Brand: {carBrandString}\nTitle: {carTitleString}\nModel Year: {carModelYear}\nTotal Kilometres: {carMileage} KM\nTransmission: {carTransmission}\nFuel Type: {carFuelType}\nWheel Drive: {carWheelDrive}\nHorsepower: {carHorsePower}''')
     carDetailsOverview = {}
     carDetailsOverview["brand"] = carBrandString
     carDetailsOverview["title"] = carTitleString
     carDetailsOverview["modelyear"] = carModelYear
-    carDetailsOverview["kilometres"] = carKilometres
+    carDetailsOverview["mileage"] = carMileage
     carDetailsOverview["transmission"] = carTransmission
     carDetailsOverview["fueltype"] = carFuelType
+    carDetailsOverview["horsepower"] = carHorsePower
+    carDetailsOverview["wheeldrive"] = carWheelDrive
+
     return carDetailsOverview
 
 def getCarBrandAndModelCode(url):
-
-    carBrandAndModelCode = {}
 
     DRIVER = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
     # Creating the request
@@ -215,29 +219,51 @@ def getCarBrandAndModelCode(url):
                 carModelCodeFromLink = make.group(0)
         else:
             continue
-    #print(f"Car brand code : {carBrandCodeFromLink}")
-    #print(f"Car model code: {carModelCodeFromLink}")
 
-    carBrandAndModelCode["brandCode"] = carBrandCodeFromLink
-    carBrandAndModelCode["modelCode"] = carModelCodeFromLink
+    return [carBrandCodeFromLink,carModelCodeFromLink]
 
-    return carBrandAndModelCode
-
-def createFinnLinkWithCarsSimilarToGivenCar(carDetailsDictionary):
-    findCarsBrandAndModelCode = carDetailsDictionary["model"]
-    findCarsWithHorsePowerFrom = carDetailsDictionary["horsepower"]
-    findCarsWithHorsePowerTo = carDetailsDictionary["horsepower"]
+def createFinnLinkWithCarsSimilarToGivenCar(url,carDetailsDictionary):
+    findCarsBrandAndModelCode = getCarBrandAndModelCode(url)
+    print(findCarsBrandAndModelCode)
+    findCarsWithHorsePowerFrom = carDetailsDictionary["horsepower"].replace("Hk","").replace(" ","")
+    findCarsWithHorsePowerTo = carDetailsDictionary["horsepower"].replace("Hk","").replace(" ","")
     findCarsWithFuelType = carDetailsDictionary["fueltype"]
-    findCarsWithMileageFrom = carDetailsDictionary["mileage"] - 30000
-    findCarsWithMileageTo = carDetailsDictionary["mileage"] + 30000
+    findCarsWithMileageFrom = carDetailsDictionary["mileage"]
+    findCarsWithMileageTo = carDetailsDictionary["mileage"]
     findCarsWithTransmission = carDetailsDictionary["transmission"]
     findCarsWithWheelDrive = carDetailsDictionary["wheeldrive"]
+    #findCarsWithModelYear = carDetailsDictionary["modelyear"]
+
+    # Convert letters to fuel-code such that it works in the Finn.no link
+    if findCarsWithFuelType == 'Diesel':
+        findCarsWithFuelType = "0%2\F2".replace("\\", "")
+    elif findCarsWithFuelType == 'Bensin':
+        findCarsWithFuelType = "0%2\F1".replace("\\", "")
+    elif findCarsWithFuelType == 'Hybrid':
+        findCarsWithFuelType = "0%2\F11111".replace("\\", "")
+    
+    if findCarsWithTransmission == "Manuell":
+        findCarsWithTransmission = 1
+    else:
+        findCarsWithTransmission = 2
+    # Convert wheeldrive to wheeldrive-code such that it works in the Finn.no link
+    if findCarsWithWheelDrive == "Firehjulsdrift":  findCarsWithWheelDrive = 2
+    elif findCarsWithWheelDrive == "Bakhjulsdrift": findCarsWithWheelDrive = 1
+    else: findCarsWithWheelDrive = 3
+
+    carGenerations = {
+    "Volkswagen": {"Polo": {"ID": "1.817.1438", "9N": ["2002", "2003", "2004", "2005"], "9N3": ["2006", "2007", "2008", "2009"], "6R": ["2010", "2011", "2012", "2013", "2014"], "6C": ["2015", "2016", "2017"], "AW": ["2018", "2019", "2020", "2021"]}},
+    "BMW" : {"5-serie": {"ID" : "1.749.2131", "E60": ["2003", "2004", "2005", "2006", "2007"], "E60LCI": ["2008", "2009"]}},
+    "Mercedes-Benz": {"C-Klasse": {"ID": "1.785.3776", "W205": ["2014", "2015", "2016", "2017", "2018", "2019", "2020"]}}
+    }
+
     # Year from & to depends on which generation the car is.
     findCarsWithYearFrom = carDetailsDictionary["modelyear"]
     findCarsWithYearTo = carDetailsDictionary["modelyear"]
 
-    urlToCarWithSimilarSpecs = f'https://www.finn.no/car/used/search.html?engine_effect_from={findCarsWithHorsePowerFrom}&engine_effect_to={findCarsWithHorsePowerTo}&engine_fuel={findCarsWithFuelType}&mileage_from={findCarsWithMileageFrom}&mileage_to={findCarsWithMileageTo}&model={findCarsBrandAndModelCode}&page=1&sales_form=1&sort=PRICE_ASC&transmission={findCarsWithTransmission}&wheel_drive={findCarsWithWheelDrive}&year_from={findCarsWithYearFrom}&year_to={findCarsWithYearTo}'
+    urlToCarWithSimilarSpecs = f'https://www.finn.no/car/used/search.html?engine_effect_from={findCarsWithHorsePowerFrom}&engine_effect_to={findCarsWithHorsePowerTo}&engine_fuel={findCarsWithFuelType}&mileage_from={findCarsWithMileageFrom}&mileage_to={findCarsWithMileageTo}&model={findCarsBrandAndModelCode[1]}&sales_form=1&sort=PRICE_ASC&transmission={findCarsWithTransmission}&wheel_drive={findCarsWithWheelDrive}&year_from={findCarsWithYearFrom}&year_to={findCarsWithYearTo}'
 
+    
     return urlToCarWithSimilarSpecs
 
 def getAllCarsWithSameSpecsFromFinn(url, initialCarModelCode):
@@ -255,7 +281,7 @@ def userMenu():
     auctionCarLinks = []
     userChoice = True
     while(userChoice):
-        print("\n1. Get vehicle registration number from Statens Vegvesen using VIN-number (INSERT VIN-number)\n2. Get vehicle prices from regnr.no (INSERT Registration Number)\n3. Get auction prices from auksjonen.no (INSERT URL)\n4. Get auction cars from auksjonen.no (INSERT URL)\n5. Compare auction car with dealer price (INSERT URL)\n6. Get car details from FINN.no (INSERT URL)\n7. Exit Program\n")
+        print("\n1. Get vehicle registration number from Statens Vegvesen using VIN-number (INSERT VIN-number)\n2. Get vehicle prices from regnr.no (INSERT Registration Number)\n3. Get auction prices from auksjonen.no (INSERT URL)\n4. Get auction cars from auksjonen.no (INSERT URL)\n5. Compare auction car with dealer price (INSERT URL)\n6. Get car details from FINN.no (INSERT URL)\n7. Create link with filters with car from FINN.no (INSERT URL)\n8. Exit Program\n")
 
         userChoice = input("I want to: ")
 
@@ -284,7 +310,12 @@ def userMenu():
             url = input("FINN.no URL: ")
             getCarDetailsFromFinn(url)   
 
-        elif(userChoice == "7"):
+        elif (userChoice == "7"):
+            url = input("FINN.no URL: ")
+            carDetailsDictionary = getCarDetailsFromFinn(url)
+            newLink = createFinnLinkWithCarsSimilarToGivenCar(url, carDetailsDictionary)
+            print(newLink)
+        elif(userChoice == "8"):
             userChoice = False
         
         else:
